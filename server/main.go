@@ -16,6 +16,7 @@ import (
 const gravGetRemoteMessageReq = "grav.getremote.request"
 const gravGetRemoteMessageRes = "grav.getremote.response"
 const msgTypePing = "grav.pingremote"
+const msgTypePingRes = "grav.pingremote.response"
 
 type getResponse struct {
 	Host   string `json:"host"`
