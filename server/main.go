@@ -65,19 +65,10 @@ func main() {
 		pod.Send(grav.NewMsg(gravGetRemoteMessageReq, []byte(host)))
 		pod.Send(grav.NewMsg(msgTypePing, []byte(host)))
 
-		fmt.Println("==== local result:", doRemoteRequest(host))
-
-		pod.WaitOn(func(m grav.Message) error {
-			if m.Type() != gravGetRemoteMessageRes {
-				return grav.ErrMsgNotWanted
-			}
-			fmt.Println("==== remote result:", string(m.Data()))
-
-			return nil
-		})
+		fmt.Println("==== local get result:", doRemoteRequest(host))
 
 		// do nothing for now
-		return vk.Respond(204, nil), nil
+		return vk.Respond(200, "good"), nil
 	})
 
 	server.POST("/meta/message", gravhttp.HandlerFunc())
@@ -88,6 +79,11 @@ func main() {
 			return err
 		}
 		pod.Send(grav.NewMsg(gravGetRemoteMessageRes, result))
+		return nil
+	})
+
+	pod.OnType(gravGetRemoteMessageRes, func(m grav.Message) error {
+		fmt.Println("==== get result:", string(m.Data()))
 		return nil
 	})
 
