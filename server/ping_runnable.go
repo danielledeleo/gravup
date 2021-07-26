@@ -10,7 +10,7 @@ type ping struct{}
 
 func (r ping) Run(job rt.Job, ctx *rt.Ctx) (interface{}, error) {
 	host := job.String()
-	out, err := exec.Command("ping", host).Output()
+	out, err := exec.Command("ping", "-q", "-c", "1", host).Output()
 	if err != nil {
 		return nil, err
 	}
