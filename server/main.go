@@ -91,6 +91,11 @@ func main() {
 		return nil
 	})
 
+	pod.OnType(msgTypePingRes, func(m grav.Message) error {
+		fmt.Println("==== ping result:", string(m.Data()))
+		return nil
+	})
+
 	server.Start()
 }
 
