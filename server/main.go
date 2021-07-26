@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/suborbital/grav/grav"
 	ghttp "github.com/suborbital/grav/transport/http"
+	"github.com/suborbital/reactr/rt"
 	"github.com/suborbital/vektor/vk"
 	"github.com/suborbital/vektor/vlog"
 )
 
 const gravGetRemoteMessageReq = "grav.getremote.request"
 const gravGetRemoteMessageRes = "grav.getremote.response"
+const msgTypePing = "grav.pingremote"
 
 type getResponse struct {
 	Host   string `json:"host"`
@@ -26,12 +29,17 @@ func main() {
 
 	port := "8080"
 
-	peers := []Peer{
-		{Address: "http://tor1.twoseven.ca", Port: port},
+	peerlist, found := os.LookupEnv("PEER_FILE")
+	if !found {
+		logger.ErrorString("PEER_FILE environment variable not set")
+		return
 	}
+
+	peers := MustParsePeerList(peerlist)
 
 	server := vk.New(vk.UseAppName("gravup"), vk.UseHTTPPort(8080))
 	discovery := NewStaticDiscovery(peers, server, gravhttp)
+	reactr := rt.New()
 
 	g := grav.New(
 		grav.UseLogger(logger),
@@ -45,19 +53,24 @@ func main() {
 		return vk.Respond(200, UUID{UUID: g.NodeUUID}), nil
 	})
 
+	reactr.HandleMsg(g.Connect(), msgTypePing, &ping{})
 	pod := g.Connect()
 
+	// TODO: collect responses for specific client
 	server.GET("/get", func(r *http.Request, ctx *vk.Ctx) (interface{}, error) {
 		host := r.URL.Query().Get("host")
 		logger.Info("trying", host)
+
 		pod.Send(grav.NewMsg(gravGetRemoteMessageReq, []byte(host)))
-		fmt.Println("local result:", doRemoteRequest(host))
+		pod.Send(grav.NewMsg(msgTypePing, []byte(host)))
+
+		fmt.Println("==== local result:", doRemoteRequest(host))
 
 		pod.WaitOn(func(m grav.Message) error {
 			if m.Type() != gravGetRemoteMessageRes {
 				return grav.ErrMsgNotWanted
 			}
-			fmt.Println("remote result:", string(m.Data()))
+			fmt.Println("==== remote result:", string(m.Data()))
 
 			return nil
 		})

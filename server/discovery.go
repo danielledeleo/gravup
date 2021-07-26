@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/suborbital/grav/grav"
@@ -17,8 +18,7 @@ const StaticDiscoveryPath = "/discovery/uuid"
 type UUID struct{ UUID string }
 
 type Peer struct {
-	Address string
-	Port    string
+	URL     *url.URL
 	falloff int64
 }
 
@@ -48,7 +48,7 @@ func (d *StaticDiscovery) Start(opts *grav.DiscoveryOpts, discoveryFunc grav.Dis
 			peer.falloff = 1
 			for {
 
-				uri := fmt.Sprintf("%s:%s%s", peer.Address, peer.Port, StaticDiscoveryPath)
+				uri := fmt.Sprintf("%s%s", peer.URL.String(), StaticDiscoveryPath)
 
 				resp, err := http.Get(uri)
 				if err != nil {
@@ -66,7 +66,7 @@ func (d *StaticDiscovery) Start(opts *grav.DiscoveryOpts, discoveryFunc grav.Dis
 				}
 				d.log.Info("found peer", uuid.UUID)
 
-				d.discoveryFunc(fmt.Sprintf("%s:%s%s", peer.Address, peer.Port, "/meta/message"), uuid.UUID)
+				d.discoveryFunc(fmt.Sprintf("%s%s", peer.URL.String(), "/meta/message"), uuid.UUID)
 				return
 			}
 		}(p)
